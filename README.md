@@ -4,7 +4,7 @@ An elixir library for Linux containers.
 
 ## Description
 
-Why not model a container as part of a [pipeline]? [1] 
+Why not model a container as part of a pipeline? [1]
 
 What is a pipeline? A pipeline calls a function which acts as a filter. A
 filter transforms the data. It can map over the elements or reduce them,
@@ -80,7 +80,7 @@ container = Ampule.spawn
 
 * Support options to `Ampule.call/1,2`
 
-* Support other functions in `
+* Support other functions in the `rpc` module
 
 * ampule vs ampoule vs ampul
 
