@@ -92,7 +92,7 @@ defmodule Ampule do
   
       gid = ListDict.fetch!(options, :gid)
 
-      cookie = ListDict.get(options, :cookie, "COOKIE")
+      cookie = ListDict.get(options, :cookie, :erlang.get_cookie)
       bridge = ListDict.get(options, :bridge, "br0")
       ipaddr = ListDict.get(options, :ipaddr, "dhcp")
   

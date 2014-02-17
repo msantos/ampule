@@ -43,11 +43,10 @@ https://github.com/msantos/erlxc
 
 ## Examples
 
-`iex` must be running in distributed mode with the cookie set to the
-highly secret value of "COOKIE":
+`iex` must be running in distributed mode:
 
 ```
-iex --cookie COOKIE --name ampule@192.168.213.54 -S mix
+iex --cookie OMNOMNOM --name ampule@192.168.123.54 -S mix
 ```
 
 * Run a pipeline via anonymous containers:
