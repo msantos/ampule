@@ -187,7 +187,7 @@ defmodule Ampule do
 
     def dhcp_script do
       """
-#!/bin/static-sh
+#!/bin/sh
 
 env
 case "$1" in
@@ -221,7 +221,7 @@ esac
 
     def boot script, cmd do
 """
-#!/bin/static-sh
+#!/bin/sh
 
 export ip=$1
 uid=$2
