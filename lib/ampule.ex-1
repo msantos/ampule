@@ -1,0 +1,162 @@
+defrecord :container, Record.extract(:container, from: "deps/erlxc/include/erlxc.hrl")
+
+defrecord AmpuleOptions, type: :temporary,
+                         verbose: 0,
+                         ipaddr: nil,
+                         path: "/tmp/ampule",
+                         bridge: "br0",
+                         cgroup: nil,
+                         uid: nil,
+                         gid: nil,
+                         cookie: "COOKIE",
+                         cmd: nil
+
+defmodule Ampule do
+  def spawn do
+    options = AmpuleOptions.new()
+    Ampule.spawn "", options
+  end
+
+  def spawn name do
+    options = AmpuleOptions.new(type: :transient)
+    Ampule.spawn name, options
+  end
+
+  def spawn name, options do
+    id = case options.uid do
+      nil -> Ampule.Chroot.id
+      n -> n
+    end
+
+    options = options.update(uid: id)
+
+    id = case options.gid do
+      nil -> options.uid
+      n -> n
+    end
+
+    options = options.update(gid: id)
+
+    cgroup = case options.cgroup do
+      nil -> []
+      n -> n
+    end
+
+    options = options.update(cgroup: cgroup)
+
+    cmd = %s(erl -noinput -setcookie #{options.cookie} -name imc)
+    options = options.update(cmd: cmd)
+
+    argv = ["/sbin/init", integer_to_list(options.uid), integer_to_list(options.gid), "/bin/sh", "-c",
+      %s(PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin HOME=/home/imc #{options.cmd})]
+
+    :erlxc.spawn name, [
+      type: options.type,
+      verbose: options.verbose,
+      path: options.path,
+      bridge: options.bridge,
+      cgroup: options.cgroup,
+      uid: options.uid,
+      gid: options.gid,
+      cookie: options.cookie,
+      start: [argv: argv]
+      ]
+  end
+
+  def send data, container do
+    :erlxc.send container, data
+  end
+
+  defmodule Chroot do
+    def config do
+      directories = ["/lib64", "/etc/alternatives"]
+      extra = lc directory inlist directories, File.dir?(directory), do: Path.relative(directory)
+
+      [
+        {"lxc.cgroup.devices.deny", "a"},
+        {"lxc.cgroup.devices.allow", "c 1:3 rwm"},
+        {"lxc.cgroup.devices.allow", "c 1:5 rwm"},
+        {"lxc.cgroup.devices.allow", "c 1:8 rwm"},
+        {"lxc.cgroup.devices.allow", "c 1:9 rwm"},
+        {"lxc.cgroup.devices.allow", "c 5:2 rwm"},
+        {"lxc.cgroup.devices.allow", "c 136:* rwm"},
+        {"lxc.cgroup.devices.allow", "c 1:7 rwm"},
+        {"lxc.cgroup.cpuset.cpus", "0"},
+        {"lxc.cgroup.cpu.shares", "256"},
+        {"lxc.mount.entry", "/lib lib none ro,bind,nosuid 0 0"},
+        {"lxc.mount.entry", "/bin bin none ro,bind,nosuid 0 0"},
+        {"lxc.mount.entry", "/usr usr none ro,bind,nosuid 0 0"},
+        {"lxc.mount.entry", "/sbin sbin none ro,bind,nosuid 0 0"},
+        {"lxc.mount.entry", init_path() <> " sbin/init none ro,bind 0 0"},
+        {"lxc.mount.entry", "tmpfs tmp tmpfs noatime,mode=1777,nosuid,size=128M 0 0"},
+        {"lxc.mount.entry", "/dev dev none ro,bind,nosuid 0 0"},
+        {"lxc.pts", "1024"},
+        {"lxc.mount.entry", "devpts dev/pts devpts rw,noexec,nosuid,gid=5,mode=0620 0 0"},
+        {"lxc.mount.entry", "proc proc proc nodev,noexec,nosuid 0 0"} |
+        extra
+      ]
+    end
+
+    def init_path do
+      path = case :code.priv_dir(:erlxc) do
+        {:error, :bad_name} ->
+          Path.join [:code.which(:erlxc), "..", "priv"]
+        dir ->
+          dir
+      end
+
+      Path.join [path, "erlxc_exec"]
+    end
+
+    def cgroup do
+      [{"blkio.weight", "500"},
+        {"memory.soft_limit_in_bytes", "268435456"},
+        {"memory.limit_in_bytes", "53687091"}]
+    end
+
+    def chroot do
+      [{dir: ["run", "run/shm", "home", "home/imc", "sbin",
+            "selinux", "sys", "tmp", "lib", "dev", "dev/pts",
+            "etc", "etc/alternatives", "root", "boot", "var",
+            "var/run", "var/log", "usr", "bin", "lib64", "proc"]}]
+    end
+
+    def dhcp_script do
+      """
+#!/bin/static-sh
+
+env
+case "$1" in
+  deconfig)
+    ip addr flush dev $interface
+  ;;
+
+  renew|bound)
+    # flush all the routes
+    if [ -n "$router" ]; then
+      ip route del default 2> /dev/null
+    fi
+
+    # check broadcast
+    if [ -n "$broadcast" ]; then
+      broadcast="broadcast $broadcast"
+    fi
+
+    # add a new ip address
+    ip addr add $ip/$mask $broadcast dev $interface
+
+    if [ -n "$router" ]; then
+      ip route add default via $router dev $interface
+    fi
+  ;;
+esac
+"""
+#      chmod +x /tmp/udhcpc.script
+#      busybox udhcpc -s /tmp/udhcpc.script
+    end
+
+    def id do
+      0xf0000000 + :erlang.phash2 {node, self}, 0xffff
+    end
+  end
+end
