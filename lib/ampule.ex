@@ -45,9 +45,9 @@ defmodule Ampule do
   end
 
   defp call {m,f,a}, container, temporary do
-    nodename = nodename container
-
     true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
+
+    nodename = nodename container
 
     case :net_adm.ping(nodename) do
       :pong ->
