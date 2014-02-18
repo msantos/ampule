@@ -187,56 +187,56 @@ defmodule Ampule do
 
     def dhcp_script do
       """
-#!/bin/sh
-
-env
-case "$1" in
-  deconfig)
-    ip addr flush dev $interface
-  ;;
-
-  renew|bound)
-    # flush all the routes
-    if [ -n "$router" ]; then
-      ip route del default 2> /dev/null
-    fi
-
-    # check broadcast
-    if [ -n "$broadcast" ]; then
-      broadcast="broadcast $broadcast"
-    fi
-
-    # add a new ip address
-    ip addr add $ip/$mask $broadcast dev $interface
-
-    if [ -n "$router" ]; then
-      ip route add default via $router dev $interface
-    fi
-
-    env > /tmp/env
-  ;;
-esac
-"""
+      #!/bin/sh
+      
+      env
+      case "$1" in
+        deconfig)
+          ip addr flush dev $interface
+        ;;
+      
+        renew|bound)
+          # flush all the routes
+          if [ -n "$router" ]; then
+            ip route del default 2> /dev/null
+          fi
+      
+          # check broadcast
+          if [ -n "$broadcast" ]; then
+            broadcast="broadcast $broadcast"
+          fi
+      
+          # add a new ip address
+          ip addr add $ip/$mask $broadcast dev $interface
+      
+          if [ -n "$router" ]; then
+            ip route add default via $router dev $interface
+          fi
+      
+          env > /tmp/env
+        ;;
+      esac
+      """
     end
 
     def boot script, cmd do
-"""
-#!/bin/sh
-
-export ip=$1
-uid=$2
-gid=$3
-
-if [ "$ip" = "dhcp" ]; then
-  busybox udhcpc -s #{script}
-  . /tmp/env
-fi
-cat /tmp/env
-
-export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
-export HOME=/home/ampule
-exec /sbin/init $uid $gid /bin/sh -c "#{cmd}"
-"""
+      """
+      #!/bin/sh
+      
+      export ip=$1
+      uid=$2
+      gid=$3
+      
+      if [ "$ip" = "dhcp" ]; then
+        busybox udhcpc -s #{script}
+        . /tmp/env
+      fi
+      cat /tmp/env
+      
+      export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+      export HOME=/home/ampule
+      exec /sbin/init $uid $gid /bin/sh -c "#{cmd}"
+      """
     end
 
     def id do
