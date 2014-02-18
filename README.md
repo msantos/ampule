@@ -52,18 +52,25 @@ iex --cookie OMNOMNOM --name ampule@192.168.123.54 -S mix
 * Run a pipeline via anonymous containers:
 
 ```elixir
-{:erlang,:node,[]} |> Ampule.call |> Ampule.mfa(:erlang, :atom_to_list) |> Ampule.call
+{:erlang,:node,[]}
+  |> Ampule.call
+  |> Ampule.mfa(:erlang, :atom_to_list)
+  |> Ampule.call
 ```
 
   This example runs `:erlang.node` in a container, converts the output
   to a tuple (`{:erlang, :atom_to_list, nodename}`) which can be passed
-  back into `Ampule.call/1` to be run in new container.
+  back into `Ampule.call/1` to be run in a new container.
 
 * Run a pipeline via named containers:
 
 ```elixir
 container = Ampule.spawn
-{:erlang,:node,[]} |> Ampule.call(container) |> Ampule.mfa(:erlang, :atom_to_list) |> Ampule.call(container) |> list_to_atom
+{:erlang,:node,[]}
+  |> Ampule.call(container)
+  |> Ampule.mfa(:erlang, :atom_to_list)
+  |> Ampule.call(container)
+  |> list_to_atom
 ```
 
   Gets the nodename of the container as a list, does the conversion of
