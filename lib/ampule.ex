@@ -12,6 +12,7 @@
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 defrecord :container, Record.extract(:container, from: "deps/erlxc/include/erlxc.hrl")
+defrecord Container, container: nil, nodename: nil
 
 defmodule Ampule do
   def spawn do
@@ -24,10 +25,13 @@ defmodule Ampule do
 
   def spawn name, options do
     options = Ampule.Chroot.new options
-    :erlxc.spawn name, options
+    container = :erlxc.spawn name, options
+    true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
+    nodename = nodename(container)
+    Container.new [container: container, nodename: nodename]
   end
 
-  def nodename container do
+  defp nodename container do
     port = :erlxc.container container
     case :liblxc.get_ips(port, "", "", 0) do
       [] -> nodename container
@@ -44,18 +48,14 @@ defmodule Ampule do
     call mfa, container, false
   end
 
-  defp call {m,f,a}, container, temporary do
-    true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
-
-    nodename = nodename container
-
+  defp call {m,f,a}, Container[container: container, nodename: nodename] = state, temporary do
     case :net_adm.ping(nodename) do
       :pong ->
         reply = :rpc.call nodename, m, f, a
         destroy container, temporary
         reply
       :pang ->
-        call {m,f,a}, container, temporary
+        call {m,f,a}, state, temporary
     end
   end
 
@@ -71,7 +71,7 @@ defmodule Ampule do
     {m,f,[a]}
   end
 
-  def console data, container do
+  def console data, Container[container: container] do
     :erlxc.send container, data
   end
 
