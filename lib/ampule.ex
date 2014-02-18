@@ -96,7 +96,7 @@ defmodule Ampule do
       bridge = ListDict.get(options, :bridge, "br0")
       ipaddr = ListDict.get(options, :ipaddr, "dhcp")
   
-      cmd = "erl -noinput -setcookie #{cookie} -name ampule@$ip"
+      cmd = "erl -pa /priv -noinput -setcookie #{cookie} -name ampule@$ip"
   
       argv = ["/ampule", ipaddr, "#{uid}", "#{gid}", cmd]
   
@@ -104,10 +104,14 @@ defmodule Ampule do
   
       config = ListDict.get(options, :config, Ampule.Chroot.config)
 
+      priv = :code.priv_dir(:ampule)
+      File.mkdir_p!(priv)
+
       config = config ++ [
         {"lxc.network.type", "veth"},
         {"lxc.network.flags", "up"},
         {"lxc.network.link", bridge},
+        {"lxc.mount.entry", "#{priv} priv none ro,bind,nosuid 0 0"},
         {"lxc.mount.entry", "tmpfs home/ampule tmpfs uid=#{uid},gid=#{gid},noatime,mode=1777,nosuid,size=128M 0 0"}
         ]
 
@@ -182,7 +186,8 @@ defmodule Ampule do
       [dir: ["run", "run/shm", "home", "home/ampule", "sbin",
             "selinux", "sys", "tmp", "lib", "dev", "dev/pts",
             "etc", "etc/alternatives", "root", "boot", "var",
-            "var/run", "var/log", "usr", "bin", "lib64", "proc"]]
+            "var/run", "var/log", "usr", "bin", "lib64", "proc",
+            "priv"]]
     end
 
     def dhcp_script do
