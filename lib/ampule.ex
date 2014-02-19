@@ -12,7 +12,7 @@
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 defrecord :container, Record.extract(:container, from: "deps/erlxc/include/erlxc.hrl")
-defrecord Container, container: nil, nodename: nil
+defrecord Container, container: nil, nodename: nil, destroy: false
 
 defmodule Ampule do
   def spawn do
@@ -41,29 +41,25 @@ defmodule Ampule do
 
   def call mfa do
     container = Ampule.spawn
-    call mfa, container, true
+    call mfa, container.update(destroy: true)
   end
 
-  def call mfa, container do
-    call mfa, container, false
-  end
-
-  defp call {m,f,a}, Container[container: container, nodename: nodename] = state, temporary do
+  def call {m,f,a}, Container[nodename: nodename] = container do
     case :net_adm.ping(nodename) do
       :pong ->
         reply = :rpc.call nodename, m, f, a
-        destroy container, temporary
+        destroy container
         reply
       :pang ->
-        call {m,f,a}, state, temporary
+        call {m,f,a}, container
     end
   end
 
-  defp destroy container, true do
+  defp destroy Container[container: container, destroy: true] do
     :erlxc_drv.stop :erlxc.container(container)
   end
 
-  defp destroy _container, false do
+  defp destroy _container do
     true
   end
 
