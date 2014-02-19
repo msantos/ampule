@@ -234,8 +234,9 @@ defmodule Ampule do
       fi
       cat /tmp/env
       
-      export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+      export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
       export HOME=/home/ampule
+      cd $HOME
       exec /sbin/init $uid $gid /bin/sh -c "#{cmd}"
       """
     end
