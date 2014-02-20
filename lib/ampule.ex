@@ -15,21 +15,25 @@ defrecord :container, Record.extract(:container, from: "deps/erlxc/include/erlxc
 defrecord Container, container: nil, nodename: nil, destroy: false
 
 defmodule Ampule do
-  def spawn do
-    Ampule.spawn "", []
-  end
 
-  def spawn name do
-    Ampule.spawn name, [type: :transient]
-  end
+  def create, do: create("", [])
+  def create(name), do: create(name, [type: :transient])
 
-  def spawn name, options do
+  def create(name, options) do
     options = Ampule.Chroot.new options
     container = :erlxc.spawn name, options
     true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
-    nodename = nodename(container)
+    Container.new [container: container]
+  end
+
+  def spawn, do: Ampule.spawn("", [])
+  def spawn(name), do: Ampule.spawn(name, [type: :transient])
+
+  def spawn name, options do
+    container = create(name, options)
+    nodename = nodename(container.container)
     ping nodename
-    Container.new [container: container, nodename: nodename]
+    container.update(nodename: nodename)
   end
 
   defp nodename container do
