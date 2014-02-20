@@ -28,6 +28,7 @@ defmodule Ampule do
     container = :erlxc.spawn name, options
     true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
     nodename = nodename(container)
+    ping nodename
     Container.new [container: container, nodename: nodename]
   end
 
@@ -39,20 +40,24 @@ defmodule Ampule do
     end
   end
 
+  defp ping nodename do
+    case :net_adm.ping(nodename) do
+      :pong ->
+        true
+      :pang ->
+        ping nodename
+    end
+  end
+
   def call mfa do
     container = Ampule.spawn
     call mfa, container.update(destroy: true)
   end
 
   def call {m,f,a}, Container[nodename: nodename] = container do
-    case :net_adm.ping(nodename) do
-      :pong ->
-        reply = :rpc.call nodename, m, f, a
-        destroy container
-        reply
-      :pang ->
-        call {m,f,a}, container
-    end
+    reply = :rpc.call nodename, m, f, a
+    destroy container
+    reply
   end
 
   defp destroy Container[container: container, destroy: true] do
