@@ -104,7 +104,7 @@ defmodule Ampule do
   
       config = ListDict.get(options, :config, Ampule.Chroot.config)
 
-      priv = :code.priv_dir(:ampule)
+      priv = Path.join(:code.priv_dir(:ampule), "share")
       File.mkdir_p!(priv)
 
       config = config ++ [
