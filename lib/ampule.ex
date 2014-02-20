@@ -67,6 +67,10 @@ defmodule Ampule do
     {m,f,[a]}
   end
 
+  def mfa a,m,f,v do
+    {m,f,[a|v]}
+  end
+
   def console data, Container[container: container] do
     :erlxc.send container, data
   end
