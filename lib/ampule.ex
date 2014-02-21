@@ -15,9 +15,11 @@ defrecord :container, Record.extract(:container, from: "deps/erlxc/include/erlxc
 defrecord Container, container: nil, nodename: nil, destroy: false
 
 defmodule Ampule do
+  @utsname "@ampule########"
 
   def create, do: create("", [])
   def create(name), do: create(name, [type: :transient])
+  def create("", options), do: create(@utsname, options)
 
   def create(name, options) do
     options = Ampule.Chroot.new options
