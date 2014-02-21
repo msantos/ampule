@@ -66,6 +66,11 @@ defmodule Ampule do
     reply
   end
 
+  def callopt mfa, options do
+    container = Ampule.spawn(@utsname, options)
+    call mfa, container.update(destroy: true)
+  end
+
   defp destroy Container[container: container, destroy: true] do
     :erlxc_drv.stop :erlxc.container(container)
   end
