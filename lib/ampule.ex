@@ -154,9 +154,10 @@ defmodule Ampule do
         {"lxc.mount.entry", "tmpfs home/ampule tmpfs uid=#{uid},gid=#{gid},noatime,mode=1777,nosuid,size=128M 0 0"}
         ]
 
-      config = config ++  case ipaddr do
+      config = config ++  case ipaddr(ipaddr) do
         "dhcp" -> []
-        _ -> [{"lxc.network.ipv4", ipaddr}]
+        {:ok, {_,_,_,_}} -> [{"lxc.network.ipv4", ipaddr}]
+        {:ok, {_,_,_,_,_,_,_,_}} -> [{"lxc.network.ipv6", ipaddr}]
       end
 
       options = ListDict.put(options, :config, config)
@@ -169,6 +170,9 @@ defmodule Ampule do
 
       ListDict.put(options, :chroot, chroot)
     end
+
+    defp ipaddr("dhcp"), do: "dhcp"
+    defp ipaddr(ip), do: :inet_parse.address(bitstring_to_list(ip))
 
     def config do
       directories = ["/lib64", "/etc/alternatives"]
