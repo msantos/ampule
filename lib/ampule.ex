@@ -32,7 +32,7 @@ defmodule Ampule do
   def spawn(name), do: Ampule.spawn(name, [type: :transient])
 
   def spawn name, options do
-    case distributed? do
+    case Node.alive? do
       true -> true
       false -> distribute!(:ampule)
     end
@@ -45,15 +45,11 @@ defmodule Ampule do
     container.update(nodename: nodename)
   end
 
-  def distributed?, do: distributed?(node())
-  def distributed?(:nonode@nohost), do: false
-  def distributed?(_), do: true
-
   def distribute!(nodename) do
     true = case :net_kernel.start([nodename]) do
       {:ok, _} ->
         cookie = :crypto.rand_bytes(8) |> :base64.encode_to_string |> list_to_atom
-        :erlang.set_cookie(node(), cookie)
+        Node.set_cookie(cookie)
       {:error, {:already_started, _}} ->
         true
       {:error, {{:already_started, _}, _}} ->
@@ -135,7 +131,7 @@ defmodule Ampule do
       uid = ListDict.fetch!(options, :uid)
       gid = ListDict.fetch!(options, :gid)
 
-      cookie = ListDict.get(options, :cookie, :erlang.get_cookie)
+      cookie = ListDict.get(options, :cookie, Node.get_cookie)
       bridge = ListDict.get(options, :bridge, "br0")
       ipaddr = ListDict.get(options, :ipaddr, "dhcp")
 
