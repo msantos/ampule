@@ -32,10 +32,33 @@ defmodule Ampule do
   def spawn(name), do: Ampule.spawn(name, [type: :transient])
 
   def spawn name, options do
+    case distributed? do
+      true -> true
+      false -> distribute!(:ampule)
+    end
+
     container = create(name, options)
     nodename = nodename(container.container)
     ping nodename
     container.update(nodename: nodename)
+  end
+
+  def distributed?, do: distributed?(node())
+  def distributed?(:nonode@nohost), do: false
+  def distributed?(_), do: true
+
+  def distribute!(nodename) do
+    true = case :net_kernel.start([nodename]) do
+      {:ok, _} ->
+        cookie = :crypto.rand_bytes(8) |> :base64.encode_to_string |> list_to_atom
+        :erlang.set_cookie(node(), cookie)
+      {:error, {:already_started, _}} ->
+        true
+      {:error, {{:already_started, _}, _}} ->
+        true
+      error ->
+        error
+    end
   end
 
   defp nodename container do
