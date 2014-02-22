@@ -17,21 +17,14 @@ defrecord Container, container: nil, nodename: nil, destroy: false
 defmodule Ampule do
   @utsname "@ampule########"
 
-  def create, do: create("", [])
-  def create(name), do: create(name, [type: :transient])
-  def create("", options), do: create(@utsname, options)
-
-  def create(name, options) do
+  def create(name \\ @utsname, options \\ []) do
     options = Ampule.Chroot.new(options)
     container = :erlxc.spawn name, options
     true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
     Container.new [container: container]
   end
 
-  def spawn, do: Ampule.spawn("", [])
-  def spawn(name), do: Ampule.spawn(name, [type: :transient])
-
-  def spawn name, options do
+  def spawn(name \\ @utsname, options \\ []) do
     case Node.alive? do
       true -> true
       false -> distribute!(:ampule)
@@ -59,7 +52,7 @@ defmodule Ampule do
     end
   end
 
-  defp nodename container do
+  defp nodename(container) do
     port = :erlxc.container container
     case :liblxc.get_ips(port, "", "", 0) do
       [] -> nodename container
@@ -67,7 +60,7 @@ defmodule Ampule do
     end
   end
 
-  defp ping nodename do
+  defp ping(nodename) do
     case :net_adm.ping(nodename) do
       :pong ->
         true
@@ -76,48 +69,40 @@ defmodule Ampule do
     end
   end
 
-  def call mfa do
+  def call(mfa) do
     container = Ampule.spawn
     call mfa, container.update(destroy: true)
   end
 
-  def call {m,f,a}, Container[nodename: nodename] = container do
+  def call({m,f,a}, Container[nodename: nodename] = container) do
     reply = :rpc.call nodename, m, f, a
     destroy container
     reply
   end
 
-  def callopt mfa, options do
+  def callopt(mfa, options) do
     container = Ampule.spawn(@utsname, options)
     call mfa, container.update(destroy: true)
   end
 
-  defp destroy Container[container: container, destroy: true] do
+  defp destroy(Container[container: container, destroy: true]) do
     :erlxc_drv.stop :erlxc.container(container)
   end
 
-  defp destroy _container do
+  defp destroy(_container) do
     true
   end
 
-  def mfa a,m,f do
-    {m,f,[a]}
-  end
-
-  def mfa a,m,f,v do
+  def mfa(a,m,f,v \\ []) do
     {m,f,[a|v]}
   end
 
-  def console data, Container[container: container] do
+  def console(data, Container[container: container]) do
     :erlxc.send container, data
   end
 
   defmodule Chroot do
-    def new do
-      new []
-    end
-
-    def new options do
+    def new(options \\ []) do
       options = ListDict.put_new(options, :uid, Ampule.Chroot.id)
 
       uid = ListDict.fetch!(options, :uid)
@@ -127,7 +112,7 @@ defmodule Ampule do
       ListDict.put_new(options, :path, "/tmp/ampule")
     end
   
-    def sandbox options do
+    def sandbox(options) do
       uid = ListDict.fetch!(options, :uid)
       gid = ListDict.fetch!(options, :gid)
 
