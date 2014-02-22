@@ -22,7 +22,7 @@ defmodule Ampule do
   def create("", options), do: create(@utsname, options)
 
   def create(name, options) do
-    options = Ampule.Chroot.new options
+    options = Ampule.Chroot.new(options)
     container = :erlxc.spawn name, options
     true = :liblxc.wait(:erlxc.container(container), "RUNNING", 0)
     Container.new [container: container]
@@ -36,6 +36,8 @@ defmodule Ampule do
       true -> true
       false -> distribute!(:ampule)
     end
+
+    options = options |> Ampule.Chroot.new |> Ampule.Chroot.sandbox
 
     container = create(name, options)
     nodename = nodename(container.container)
@@ -121,26 +123,26 @@ defmodule Ampule do
 
     def new options do
       options = ListDict.put_new(options, :uid, Ampule.Chroot.id)
-  
+
       uid = ListDict.fetch!(options, :uid)
-  
+
       options = ListDict.put_new(options, :gid, uid)
-      options = ListDict.put_new(options, :cgroup, [])
+      options = ListDict.put_new(options, :cgroup, cgroup())
+      ListDict.put_new(options, :path, "/tmp/ampule")
+    end
   
-      options = ListDict.put_new(options, :path, "/tmp/ampule")
-  
+    def sandbox options do
+      uid = ListDict.fetch!(options, :uid)
       gid = ListDict.fetch!(options, :gid)
 
       cookie = ListDict.get(options, :cookie, :erlang.get_cookie)
       bridge = ListDict.get(options, :bridge, "br0")
       ipaddr = ListDict.get(options, :ipaddr, "dhcp")
-  
+
       cmd = "erl -pa /priv -noinput -setcookie #{cookie} -name ampule@$ip"
-  
       argv = ["/ampule", ipaddr, "#{uid}", "#{gid}", cmd]
-  
       options = ListDict.put(options, :start, [argv: argv])
-  
+
       config = ListDict.get(options, :config, Ampule.Chroot.config)
 
       priv = Path.join(:code.priv_dir(:ampule), "share")
@@ -167,7 +169,6 @@ defmodule Ampule do
          {"udhcpc.script", dhcp_script(), 0755},
          {"ampule", boot("/udhcpc.script", cmd), 0755}
          ]]
-
       ListDict.put(options, :chroot, chroot)
     end
 
