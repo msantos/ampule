@@ -46,7 +46,7 @@ https://github.com/msantos/erlxc
 `iex` must be running in distributed mode:
 
 ```
-iex --cookie OMNOMNOM --name ampule@192.168.123.54 -S mix
+iex --name ampule@192.168.123.54 -S mix
 ```
 
 * Run a pipeline via anonymous containers:
@@ -77,14 +77,20 @@ container = Ampule.spawn
   the atom to a list inside the same container, then completes the cycle
   of life by making the list into an atom again.
 
+* Spawn a process in a container
+
+```elixir
+container = Ampule.spawn
+pid = self
+Node.spawn(container.nodename, fn -> ls = :os.cmd('ls -al'); send(pid, ls) end)
+```
+
 ## TODO
 
 * To be safer, ampule could, by default, use a bridge disconnected from
   the network. The bridge could be a system bridge or an Erlang bridge.
 
 * Timeout and destroy if container creation/erlang boot fails
-
-* Support options to `Ampule.call/1,2`
 
 * Support other functions in the `rpc` module
 
