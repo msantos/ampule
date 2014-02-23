@@ -30,7 +30,9 @@ defmodule Ampule do
       false -> distribute!(:ampule)
     end
 
-    options = options |> Ampule.Chroot.new |> Ampule.Chroot.sandbox
+    options = options
+              |> Ampule.Chroot.new
+              |> Ampule.Chroot.sandbox
 
     container = create(name, options)
     nodename = nodename(container.container)
@@ -41,7 +43,9 @@ defmodule Ampule do
   def distribute!(nodename) do
     true = case :net_kernel.start([nodename]) do
       {:ok, _} ->
-        cookie = :crypto.rand_bytes(8) |> :base64.encode_to_string |> list_to_atom
+        cookie = :crypto.rand_bytes(8)
+                  |> :base64.encode_to_string
+                  |> list_to_atom
         Node.set_cookie(cookie)
       {:error, {:already_started, _}} ->
         true
@@ -61,10 +65,10 @@ defmodule Ampule do
   end
 
   defp ping(nodename) do
-    case :net_adm.ping(nodename) do
-      :pong ->
+    case Node.connect(nodename) do
+      true ->
         true
-      :pang ->
+      false ->
         ping nodename
     end
   end
