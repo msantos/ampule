@@ -85,6 +85,23 @@ pid = self
 Node.spawn(container.nodename, fn -> ls = :os.cmd('ls -al'); send(pid, ls) end)
 ```
 
+* Boot a container running Ubuntu
+
+  Anything written to the system console is sent as messages to the process.
+
+```elixir
+container = Ampule.create
+
+# default username
+"ubuntu\n" |> Ampule.console container
+
+# default passowrd
+"ubuntu\n" |> Ampule.console container
+
+# run a command
+"ls -al\n" |> Ampule.console container
+```
+
 ## TODO
 
 * To be safer, ampule could, by default, use a bridge disconnected from
