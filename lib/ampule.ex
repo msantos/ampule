@@ -27,7 +27,9 @@ defmodule Ampule do
   def spawn(name \\ @utsname, options \\ []) do
     case Node.alive? do
       true -> true
-      false -> distribute!(:ampule)
+      false ->
+        distname = :erlxc.name("ampule##") |> binary_to_atom
+        distribute!(distname)
     end
 
     options = options
@@ -43,9 +45,7 @@ defmodule Ampule do
   def distribute!(nodename) do
     true = case :net_kernel.start([nodename]) do
       {:ok, _} ->
-        cookie = :crypto.rand_bytes(8)
-                  |> :base64.encode_to_string
-                  |> list_to_atom
+        cookie = :erlxc.name("########") |> binary_to_atom
         Node.set_cookie(cookie)
       {:error, {:already_started, _}} ->
         true
@@ -78,7 +78,7 @@ defmodule Ampule do
     call mfa, container.update(destroy: true)
   end
 
-  def call({m,f,a}, Container[nodename: nodename] = container) do
+  def call({m,f,a}, container = Container[nodename: nodename]) do
     reply = :rpc.call nodename, m, f, a
     destroy container
     reply
