@@ -133,6 +133,8 @@ defmodule Ampule do
       priv = Path.join(:code.priv_dir(:ampule), "share")
       File.mkdir_p!(priv)
 
+      options = ListDict.put_new(options, :console, false)
+
       config = config ++ [
         {"lxc.network.type", "veth"},
         {"lxc.network.flags", "up"},
