@@ -12,4 +12,10 @@ defmodule AmpuleTest do
     assert('0987654321' == result)
   end
 
+  test "system container" do
+    container = Ampule.create
+    port = :erlxc.console(container.container)
+    assert_receive {^port, {:data, "\nConnected to tty 1" <> _}}, 300000
+  end
+
 end
